@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<link rel="manifest" href="manifest.webmanifest">
+<title>IA Local</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0d10;color:#f4f5f7;font-family:system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden}
+header{height:62px;padding:0 16px;border-bottom:1px solid #292e35;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800}.status{font-size:12px;color:#a5adb8}
+main{height:calc(100vh - 62px);display:flex;flex-direction:column;max-width:850px;margin:auto}
+#messages{flex:1;overflow:auto;padding:18px 14px 110px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:86%;padding:13px 15px;border-radius:17px;line-height:1.5;white-space:pre-wrap}
+.user{align-self:flex-end;background:#252a31}.ai{align-self:flex-start;background:#161a1f;border:1px solid #2a3038}
+.empty{text-align:center;margin:auto;color:#89919c}.empty b{display:block;color:#f4f5f7;font-size:25px;margin-bottom:8px}
+#bar{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(820px,calc(100% - 20px));background:#171a1f;border:1px solid #363c45;border-radius:21px;padding:8px;display:flex;gap:8px;box-shadow:0 10px 35px #000b}
+textarea{flex:1;background:transparent;color:#fff;border:0;outline:0;resize:none;font:15px system-ui;padding:10px;min-height:45px;max-height:120px}
+button{border:0;border-radius:15px;padding:0 17px;background:#f0f2f4;color:#111;font-weight:800}button:disabled{opacity:.45}
+#progress{position:fixed;inset:0;background:#0b0d10ee;display:none;align-items:center;justify-content:center;padding:25px;text-align:center;z-index:5}
+.box{width:min(480px,100%)}.bar{height:9px;background:#252a31;border-radius:9px;overflow:hidden;margin:18px 0}.fill{height:100%;width:0;background:#eee}
+small{color:#929aa5}
+</style>
+</head>
+<body>
+<header><div class="logo">◉ IA Local</div><div class="status" id="status">sin cargar</div></header>
+<main><div id="messages"><div class="empty"><b>Tu IA</b>Escribe una pregunta normal.<br>La primera carga puede tardar bastante.</div></div></main>
+<div id="progress"><div class="box"><h2 id="pt">Preparando IA…</h2><div class="bar"><div class="fill" id="fill"></div></div><small id="pd">0%</small></div></div>
+<form id="bar"><textarea id="input" placeholder="Escribe algo..." required></textarea><button id="send">Enviar</button></form>
+<script type="module">
+import {CreateMLCEngine} from "https://esm.run/@mlc-ai/web-llm";
+
+const MODEL="Llama-3.2-1B-Instruct-q4f16_1-MLC";
+let engine=null, loading=null;
+const $=s=>document.querySelector(s);
+const messages=$("#messages"), input=$("#input"), send=$("#send"), status=$("#status");
+
+function add(cls,text){const d=document.createElement("div");d.className="msg "+cls;d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight;return d}
+async function init(){
+  if(loading)return loading;
+  loading=(async()=>{
+    if(!("gpu" in navigator)) throw new Error("Este navegador no tiene WebGPU disponible.");
+    $("#progress").style.display="flex";
+    engine=await CreateMLCEngine(MODEL,{initProgressCallback:p=>{
+      const pct=Math.round((p.progress||0)*100);
+      $("#fill").style.width=pct+"%";$("#pd").textContent=pct+"%";
+      $("#pt").textContent=p.text||"Descargando modelo…";
+    }});
+    $("#progress").style.display="none";status.textContent="lista";
+  })();
+  try{return await loading}catch(e){loading=null;$("#progress").style.display="none";status.textContent="error";throw e}
+}
+$("#bar").addEventListener("submit",async e=>{
+ e.preventDefault();const text=input.value.trim();if(!text)return;
+ add("user",text);input.value="";send.disabled=true;status.textContent="cargando…";
+ try{
+   await init();
+   const box=add("ai","Pensando…");
+   const r=await engine.chat.completions.create({messages:[
+     {role:"system",content:"Responde en español de forma clara y útil. No pidas palabras clave ni comandos especiales."},
+     {role:"user",content:text}
+   ],temperature:.7,max_tokens:500});
+   box.textContent=r.choices?.[0]?.message?.content||"No hubo respuesta.";
+   status.textContent="lista";
+ }catch(err){
+   add("ai","No se pudo iniciar la IA: "+err.message);
+   status.textContent="error";
+ }finally{send.disabled=false;input.focus()}
+});
+if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body>
+</html>

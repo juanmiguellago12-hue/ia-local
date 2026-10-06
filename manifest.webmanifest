@@ -1,0 +1,9 @@
+{
+  "name":"IA Local",
+  "short_name":"IA Local",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#0b0d10",
+  "theme_color":"#0b0d10",
+  "description":"Chat con una IA local en el navegador."
+}

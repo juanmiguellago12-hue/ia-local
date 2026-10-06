@@ -1,0 +1,15 @@
+IA LOCAL PARA TELEFONO
+
+Esta versión no usa Ollama ni pide una suscripción.
+Ejecuta un modelo compatible con WebLLM dentro del navegador mediante WebGPU.
+
+IMPORTANTE:
+- El teléfono/navegador debe tener WebGPU.
+- La primera vez descarga el modelo y puede tardar bastante.
+- Después el navegador puede reutilizar los archivos guardados.
+- Para instalarla como app, el proyecto debe estar publicado en HTTPS; después puedes usar "Añadir a pantalla de inicio" en Chrome.
+
+Modelo incluido:
+Llama 3.2 1B Instruct q4f16_1, elegido por ser una de las opciones de menor memoria de WebLLM.
+
+No es un APK. Es una PWA/web-app preparada para Android.
